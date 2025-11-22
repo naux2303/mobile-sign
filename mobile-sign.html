@@ -22,8 +22,15 @@
     .hint {
       font-size: 0.9rem;
       color: #555;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
       text-align: center;
+    }
+
+    .hint-extra {
+      text-align: center;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      color: #333;
     }
 
     .toolbar {
@@ -175,13 +182,32 @@
       text-align: center;
     }
 
+    .sign-canvas-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
     #signCanvas {
       width: 100%;
       height: 260px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      background: #fff;
+      background: #fff; /* 視覺白底，但匯出時仍保留透明，只畫線 */
       touch-action: none;
+      display: block;
+    }
+
+    .sign-watermark {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      color: #666;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0.8;
+      line-height: 1.3;
     }
 
     .sign-pad-buttons {
@@ -222,10 +248,10 @@
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    <div style="text-align:center; font-size:0.9rem; margin-bottom:10px; color:#333;">
-    如果您不想簽名：開啟簽名板後請按「取消」，簽名欄位會保持空白。
-    </div>
     步驟：①選擇簽單圖片 → ②簽名 → ③拖到簽名欄位 → ④儲存圖片
+  </div>
+  <div class="hint-extra">
+    不想簽名：開啟簽名板後，保持空白並按「取消」，簽名欄位會保持空白。
   </div>
 
   <div class="toolbar">
@@ -267,15 +293,23 @@
 
   <div class="result-wrapper">
     ✅ 產生好的圖片會顯示在下方：  
-    <div class="small-hint">如果手機沒有自動下載，請長按圖片 → 儲存到相簿。</div>
+    <div class="small-hint">如果手機沒有自動下載，請往下滑，長按下方圖片 → 儲存到相簿。</div>
     <img id="resultImage" class="result-image" alt="簽名完成圖片預覽" />
   </div>
 
   <!-- 簽名板 Overlay -->
   <div id="signPadOverlay">
     <div class="sign-pad-box">
-      <div class="sign-pad-title">請在框內簽名（用手指寫）</div>
-      <canvas id="signCanvas"></canvas>
+      <div class="sign-pad-title">請在框內簽名（用手指書寫）</div>
+
+      <div class="sign-canvas-wrapper">
+        <canvas id="signCanvas"></canvas>
+        <div class="sign-watermark">
+          若不想簽名，請保持空白並按下方「取消」<br>
+          保持空白 ＝ 不會加入簽名
+        </div>
+      </div>
+
       <div class="sign-pad-buttons">
         <button id="clearSignature" class="btn-danger">清除重簽</button>
         <button id="cancelSignature" class="btn-secondary">取消</button>
@@ -283,7 +317,7 @@
       </div>
       <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
       <div class="small-hint" style="color:#444;">
-      ※ 不想簽名？不用畫，直接按「取消」即可（不會加入任何簽名）
+        ※ 如果臨時決定不要簽名，可以直接按「取消」，不會加入任何簽名。
       </div>
     </div>
   </div>
@@ -375,12 +409,29 @@
       }
     }
 
-    // === 開啟簽名板 ===
+    // === 開啟簽名板（含防呆：已有簽名時詢問是否重簽） ===
     openSignBtn.addEventListener('click', () => {
       if (!bgLoaded) {
         alert('請先選擇簽單圖片。');
         return;
       }
+
+      if (signatureImage) {
+        const ok = confirm(
+          '目前已經有一個簽名。\n\n' +
+          '如果你覺得簽得不好看，想重新簽，請按「確定」。\n' +
+          '如果想保留現在的簽名，請按「取消」。'
+        );
+        if (!ok) {
+          // 使用者按「取消」→ 保留原本簽名，不開簽名板
+          return;
+        }
+        // 使用者同意重簽 → 清掉舊簽名、隱藏調整區
+        signatureImage = null;
+        sigControls.style.display = 'none';
+        render();
+      }
+
       openSignPad();
     });
 
@@ -406,7 +457,8 @@
       signCtx.lineCap = 'round';
       signCtx.lineJoin = 'round';
       signCtx.strokeStyle = '#000000';
-      // 清空畫布，保留透明背景
+
+      // 清空畫布內容，背景保持透明（實際視覺白底由 CSS 決定）
       signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     }
 
@@ -450,9 +502,8 @@
     signCanvas.addEventListener('pointercancel', stopDrawing);
     signCanvas.addEventListener('pointerleave', stopDrawing);
 
-    // 清除重簽
+    // 清除重簽（畫布恢復透明內容）
     clearSignatureBtn.addEventListener('click', () => {
-      // 清空畫布，重新變透明
       signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     });
 
@@ -568,29 +619,6 @@
         alert('請先選擇簽單圖片。');
         return;
       }
-      // 防呆：已經有簽名時，詢問是否丟掉重簽
-      if (signatureImage) {
-        const ok = confirm('目前已經有一個簽名，重新簽名會覆蓋舊的，確定要重簽嗎？如果你想保留原本的簽名，請按「取消」。（直接按取消＝不會改動任何東西）');
-        if (!ok) {
-          // 使用者按「取消」→ 保留原本簽名，不開簽名板
-          return;
-        }
-        // 使用者同意重簽 → 清掉舊簽名、隱藏調整區
-        signatureImage = null;
-        sigControls.style.display = 'none';
-        render();
-      }
-      
-      openSignPad();
-      // 加入浮水印提示文字（不會寫進匯出的簽名 PNG）
-      signCtx.save();
-      signCtx.globalAlpha = 0.4;
-      signCtx.font = "16px sans-serif";
-      signCtx.fillStyle = "#333";
-      signCtx.fillText("若要取消簽名 → 請按下方「取消」按鈕\n保持空白＝不會加入簽名", 10, signHeightCSS - 20);
-      signCtx.restore();
-    });
-       
       // 確保畫面是最新位置
       render();
 
@@ -608,9 +636,8 @@
       resultImage.src = dataUrl;
       resultImage.style.display = 'block';
 
-      alert('已產生簽名圖片：如果沒有自動下載，請往下滑、長按預覽圖儲存到相簿。');
+      alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
     });
   </script>
 </body>
 </html>
-
