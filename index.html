@@ -5,16 +5,18 @@
   <title>手機簽名貼到簽單</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <style>
-    body.noscroll {
-      overflow: hidden;
-      touch-action: none;
-    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
       padding: 12px;
       background: #f5f5f5;
       color: #222;
+    }
+
+    /* 簽名板打開時，鎖住整頁捲動（一般瀏覽器用） */
+    body.noscroll {
+      overflow: hidden;
+      touch-action: none;
     }
 
     h1 {
@@ -35,6 +37,19 @@
       font-size: 0.9rem;
       margin-bottom: 10px;
       color: #333;
+    }
+
+    /* 只有在 LINE 內建瀏覽器時才會顯示的提示條 */
+    .line-hint-bar {
+      display: none;
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      line-height: 1.4;
     }
 
     .toolbar {
@@ -163,6 +178,10 @@
       align-items: center;
       justify-content: center;
       z-index: 999;
+
+      /* 盡量阻止 overscroll 導致整頁滑動（新一點的瀏覽器） */
+      overscroll-behavior: contain;
+      touch-action: none;
     }
 
     #signPadOverlay.active {
@@ -247,15 +266,38 @@
       color: #777;
       text-align: center;
     }
+
+    /* 直式時顯示「建議橫放」 */
+    .rotate-hint {
+      font-size: 0.9rem;
+      color: #c0392b;
+      text-align: center;
+      margin-top: 4px;
+      display: none;
+    }
+
+    @media (orientation: portrait) {
+      .rotate-hint {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②給客人簽名 → ③簽完拖到簽名欄位 → ④儲存圖片
+    步驟：①選擇簽單圖片 → ②簽名後確認 → ③拖到簽名欄位 → ④儲存圖片
   </div>
   <div class="hint-extra">
     重簽或刪除：開啟簽名板後可以重簽；保持空白並按「取消」，可以刪除簽名。
+  </div>
+
+  <!-- 只有在 LINE 內建瀏覽器時才會顯示 -->
+  <div id="lineHint" class="line-hint-bar">
+    偵測到您是使用 LINE 開啟網頁。<br>
+    若簽名時畫面會跟著上下滑動，建議：<br>
+    ① 將手機橫放後再簽名；或<br>
+    ② 點右上角「⋯」→ 選擇「在外部瀏覽器開啟」，簽名會更穩定。
   </div>
 
   <div class="toolbar">
@@ -305,6 +347,9 @@
   <div id="signPadOverlay">
     <div class="sign-pad-box">
       <div class="sign-pad-title">請在框內簽名（用手指書寫）</div>
+      <div class="rotate-hint">
+        建議將手機橫放簽名，畫面會比較大、比較穩。
+      </div>
 
       <div class="sign-canvas-wrapper">
         <canvas id="signCanvas"></canvas>
@@ -351,6 +396,8 @@
     const cancelSignatureBtn = document.getElementById('cancelSignature');
     const useSignatureBtn = document.getElementById('useSignature');
 
+    const lineHintBar = document.getElementById('lineHint');
+
     let bgImage = null;              // 簽單背景圖
     let signatureImage = null;       // 已簽好名字的圖
     let sigPosX = 0;                 // 簽名在背景上的 X
@@ -368,6 +415,25 @@
     let lastSignY = 0;
     let signWidthCSS = 0;
     let signHeightCSS = 0;
+
+    // 是否目前簽名板打開（給全局 touchmove 鎖捲動用，主要打 LINE）
+    let isSignPadOpen = false;
+
+    // === 偵測 LINE 內建瀏覽器，顯示提示條 ===
+    document.addEventListener('DOMContentLoaded', () => {
+      const ua = navigator.userAgent || '';
+      if (/Line/i.test(ua) && lineHintBar) {
+        lineHintBar.style.display = 'block';
+      }
+    });
+
+    // === 全局鎖捲動（針對 LINE：簽名板打開時，阻止任何 touchmove 捲動） ===
+    document.addEventListener('touchmove', (e) => {
+      if (isSignPadOpen) {
+        // 這裡一定要 passive: false 才能 preventDefault 生效（我們在 addEventListener 設定了）
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     // === 載入簽單圖片 ===
     bgInput.addEventListener('change', (e) => {
@@ -441,15 +507,12 @@
 
     function openSignPad() {
       signOverlay.classList.add('active');
-
-      // ✅ 打開簽名板時鎖住整頁捲動
       document.body.classList.add('noscroll');
+      isSignPadOpen = true;
 
-      // 先讓 overlay 顯示出來，才能抓到正確寬度
-      // 這邊已經 add('active')，DOM 已經顯示，所以可以直接抓 parent 寬度
       const wrapper = signCanvas.parentElement; // .sign-canvas-wrapper
-      const boxWidth = wrapper.clientWidth;     // 實際可用寬度
-      const boxHeight = 260;                    // 固定高度，手機書寫比較穩
+      const boxWidth = wrapper.clientWidth;
+      const boxHeight = 260; // 固定高度，手機書寫比較穩
 
       signWidthCSS = boxWidth;
       signHeightCSS = boxHeight;
@@ -470,9 +533,10 @@
       signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     }
 
-
     function closeSignPad() {
       signOverlay.classList.remove('active');
+      document.body.classList.remove('noscroll');
+      isSignPadOpen = false;
     }
 
     // === 簽名板：畫線 ===
@@ -626,7 +690,7 @@
     saveImageBtn.addEventListener('click', () => {
       if (!bgLoaded) {
         alert('請先選擇簽單圖片。');
-        return;
+      return;
       }
       // 確保畫面是最新位置
       render();
@@ -650,6 +714,3 @@
   </script>
 </body>
 </html>
-
-
-
