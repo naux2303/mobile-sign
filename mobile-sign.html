@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>手機簽名貼到簽單</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 12px;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+
+    .hint {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    button, input[type="file"] {
+      font-size: 1rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      font-size: 1rem;
+    }
+
+    #bgUpload {
+      display: none;
+    }
+
+    .canvas-wrapper {
+      background: #ddd;
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    #previewCanvas {
+      width: 100%;
+      height: auto;
+      background: #fff;
+      border-radius: 4px;
+      touch-action: none; /* 手指拖動時比較好控制 */
+    }
+
+    .sig-controls {
+      display: none; /* 有簽名才顯示 */
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      background: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    .sig-controls-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .arrow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(3, 40px);
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .arrow-grid button {
+      font-size: 1.2rem;
+      padding: 0.2rem;
+    }
+
+    .arrow-grid .empty {
+      visibility: hidden;
+    }
+
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .scale-row input[type="range"] {
+      flex: 1;
+    }
+
+    .result-wrapper {
+      margin-top: 10px;
+      background: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 0.9rem;
+    }
+
+    .result-image {
+      width: 100%;
+      height: auto;
+      margin-top: 6px;
+      display: none;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    /* 簽名板 Overlay */
+    #signPadOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    #signPadOverlay.active {
+      display: flex;
+    }
+
+    .sign-pad-box {
+      background: #fff;
+      width: calc(100% - 32px);
+      max-width: 900px;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sign-pad-title {
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    #signCanvas {
+      width: 100%;
+      height: 260px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      touch-action: none;
+    }
+
+    .sign-pad-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .sign-pad-buttons button {
+      flex: 1;
+      min-width: 90px;
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: #fff;
+      border-color: #007bff;
+    }
+
+    .btn-danger {
+      background: #ff4d4f;
+      color: #fff;
+      border-color: #ff4d4f;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+    }
+
+    .small-hint {
+      font-size: 0.8rem;
+      color: #777;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>簽名貼到簽單（手機版）</h1>
+  <div class="hint">
+    步驟：①選擇簽單圖片 → ②簽名 → ③拖到簽名欄位 → ④儲存圖片
+  </div>
+
+  <div class="toolbar">
+    <label class="file-label">
+      📄 選擇簽單圖片
+      <input type="file" id="bgUpload" accept="image/*" />
+    </label>
+
+    <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
+    <button id="saveImage" disabled>💾 儲存成圖片</button>
+  </div>
+
+  <div class="canvas-wrapper">
+    <canvas id="previewCanvas"></canvas>
+  </div>
+
+  <div id="sigControls" class="sig-controls">
+    <div class="sig-controls-title">簽名位置與大小調整</div>
+    <div class="small-hint">可以用手指直接拖動畫面上的簽名，也可以用下方按鈕微調。</div>
+
+    <div class="arrow-grid">
+      <div class="empty"></div>
+      <button id="btnUp">↑</button>
+      <div class="empty"></div>
+      <button id="btnLeft">←</button>
+      <div class="empty"></div>
+      <button id="btnRight">→</button>
+      <div class="empty"></div>
+      <button id="btnDown">↓</button>
+      <div class="empty"></div>
+    </div>
+
+    <div class="scale-row">
+      <span>縮小</span>
+      <input type="range" id="scaleRange" min="0.5" max="2.0" step="0.05" value="1" />
+      <span>放大</span>
+    </div>
+  </div>
+
+  <div class="result-wrapper">
+    ✅ 產生好的圖片會顯示在下方：  
+    <div class="small-hint">如果手機沒有自動下載，請長按圖片 → 儲存到相簿。</div>
+    <img id="resultImage" class="result-image" alt="簽名完成圖片預覽" />
+  </div>
+
+  <!-- 簽名板 Overlay -->
+  <div id="signPadOverlay">
+    <div class="sign-pad-box">
+      <div class="sign-pad-title">請在框內簽名（用手指寫）</div>
+      <canvas id="signCanvas"></canvas>
+      <div class="sign-pad-buttons">
+        <button id="clearSignature" class="btn-danger">清除重簽</button>
+        <button id="cancelSignature" class="btn-secondary">取消</button>
+        <button id="useSignature" class="btn-primary">使用這個簽名</button>
+      </div>
+      <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
+    </div>
+  </div>
+
+  <script>
+    // === 全域變數 ===
+    const bgInput = document.getElementById('bgUpload');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const openSignBtn = document.getElementById('openSignPad');
+    const saveImageBtn = document.getElementById('saveImage');
+    const sigControls = document.getElementById('sigControls');
+    const scaleRange = document.getElementById('scaleRange');
+    const resultImage = document.getElementById('resultImage');
+
+    const btnUp = document.getElementById('btnUp');
+    const btnDown = document.getElementById('btnDown');
+    const btnLeft = document.getElementById('btnLeft');
+    const btnRight = document.getElementById('btnRight');
+
+    // 簽名板元素
+    const signOverlay = document.getElementById('signPadOverlay');
+    const signCanvas = document.getElementById('signCanvas');
+    const signCtx = signCanvas.getContext('2d');
+    const clearSignatureBtn = document.getElementById('clearSignature');
+    const cancelSignatureBtn = document.getElementById('cancelSignature');
+    const useSignatureBtn = document.getElementById('useSignature');
+
+    let bgImage = null;              // 簽單背景圖
+    let signatureImage = null;       // 已簽好名字的圖
+    let sigPosX = 0;                 // 簽名在背景上的 X
+    let sigPosY = 0;                 // 簽名在背景上的 Y
+    let sigScale = 1;                // 簽名縮放
+    let bgLoaded = false;
+
+    let draggingSig = false;
+    let lastDragClientX = 0;
+    let lastDragClientY = 0;
+
+    // 簽名板內部狀態
+    let drawing = false;
+    let lastSignX = 0;
+    let lastSignY = 0;
+    let signWidthCSS = 0;
+    let signHeightCSS = 0;
+
+    // === 載入簽單圖片 ===
+    bgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          bgImage = img;
+          // 用圖片原始尺寸作為畫布尺寸（輸出清晰）
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          bgLoaded = true;
+          openSignBtn.disabled = false;
+          saveImageBtn.disabled = false;
+          signatureImage = null;
+          sigControls.style.display = 'none';
+          resultImage.style.display = 'none';
+          render();
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // === 主畫面：重新繪製 ===
+    function render() {
+      if (!bgLoaded || !bgImage) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+      if (signatureImage) {
+        ctx.save();
+        ctx.translate(sigPosX, sigPosY);
+        ctx.scale(sigScale, sigScale);
+        ctx.drawImage(signatureImage, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // === 開啟簽名板 ===
+    openSignBtn.addEventListener('click', () => {
+      if (!bgLoaded) {
+        alert('請先選擇簽單圖片。');
+        return;
+      }
+      openSignPad();
+    });
+
+    function openSignPad() {
+      signOverlay.classList.add('active');
+
+      const margin = 40;
+      const maxCanvasHeight = 260; // CSS 高度固定，方便長輩簽名
+      const boxWidth = window.innerWidth - margin;
+      const boxHeight = maxCanvasHeight;
+
+      signWidthCSS = boxWidth;
+      signHeightCSS = boxHeight;
+
+      const dpr = window.devicePixelRatio || 1;
+      signCanvas.style.width = boxWidth + 'px';
+      signCanvas.style.height = boxHeight + 'px';
+      signCanvas.width = boxWidth * dpr;
+      signCanvas.height = boxHeight * dpr;
+
+      signCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      signCtx.lineWidth = 3.5;
+      signCtx.lineCap = 'round';
+      signCtx.lineJoin = 'round';
+      signCtx.strokeStyle = '#000000';
+      // 填滿白底
+      signCtx.fillStyle = '#ffffff';
+      signCtx.fillRect(0, 0, signWidthCSS, signHeightCSS);
+    }
+
+    function closeSignPad() {
+      signOverlay.classList.remove('active');
+    }
+
+    // === 簽名板：畫線 ===
+    function getSignPos(evt) {
+      const rect = signCanvas.getBoundingClientRect();
+      const x = evt.clientX - rect.left;
+      const y = evt.clientY - rect.top;
+      return { x, y };
+    }
+
+    signCanvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      drawing = true;
+      const pos = getSignPos(e);
+      lastSignX = pos.x;
+      lastSignY = pos.y;
+    });
+
+    signCanvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getSignPos(e);
+      signCtx.beginPath();
+      signCtx.moveTo(lastSignX, lastSignY);
+      signCtx.lineTo(pos.x, pos.y);
+      signCtx.stroke();
+      lastSignX = pos.x;
+      lastSignY = pos.y;
+    });
+
+    function stopDrawing() {
+      drawing = false;
+    }
+
+    signCanvas.addEventListener('pointerup', stopDrawing);
+    signCanvas.addEventListener('pointercancel', stopDrawing);
+    signCanvas.addEventListener('pointerleave', stopDrawing);
+
+    // 清除重簽
+    clearSignatureBtn.addEventListener('click', () => {
+      signCtx.fillStyle = '#ffffff';
+      signCtx.fillRect(0, 0, signWidthCSS, signHeightCSS);
+    });
+
+    // 取消
+    cancelSignatureBtn.addEventListener('click', () => {
+      closeSignPad();
+    });
+
+    // 使用這個簽名
+    useSignatureBtn.addEventListener('click', () => {
+      const dataUrl = signCanvas.toDataURL('image/png');
+      const img = new Image();
+      img.onload = () => {
+        signatureImage = img;
+        // 初始位置抓在簽單右下角附近
+        if (bgImage) {
+          sigScale = 0.3; // 先給一個大概的比例，之後可以用拉桿調
+          sigPosX = bgImage.naturalWidth * 0.55;
+          sigPosY = bgImage.naturalHeight * 0.7;
+        } else {
+          sigScale = 1;
+          sigPosX = 50;
+          sigPosY = 50;
+        }
+        scaleRange.value = sigScale;
+        sigControls.style.display = 'flex';
+        render();
+      };
+      img.src = dataUrl;
+      closeSignPad();
+    });
+
+    // === 主畫面：用手指拖移簽名 ===
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!signatureImage) return;
+      e.preventDefault();
+      draggingSig = true;
+      lastDragClientX = e.clientX;
+      lastDragClientY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!draggingSig || !signatureImage) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const scaleFactor = canvas.width / rect.width; // 把螢幕上的位移換算成畫布座標
+
+      const dxClient = e.clientX - lastDragClientX;
+      const dyClient = e.clientY - lastDragClientY;
+
+      sigPosX += dxClient * scaleFactor;
+      sigPosY += dyClient * scaleFactor;
+
+      lastDragClientX = e.clientX;
+      lastDragClientY = e.clientY;
+
+      render();
+    });
+
+    canvas.addEventListener('pointerup', (e) => {
+      draggingSig = false;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    });
+
+    canvas.addEventListener('pointercancel', () => {
+      draggingSig = false;
+    });
+
+    canvas.addEventListener('pointerleave', () => {
+      draggingSig = false;
+    });
+
+    // === 方向鍵微調 ===
+    const MOVE_STEP = 20; // 一次移動 20px（背景原始尺寸座標）
+
+    btnUp.addEventListener('click', () => {
+      if (!signatureImage) return;
+      sigPosY -= MOVE_STEP;
+      render();
+    });
+
+    btnDown.addEventListener('click', () => {
+      if (!signatureImage) return;
+      sigPosY += MOVE_STEP;
+      render();
+    });
+
+    btnLeft.addEventListener('click', () => {
+      if (!signatureImage) return;
+      sigPosX -= MOVE_STEP;
+      render();
+    });
+
+    btnRight.addEventListener('click', () => {
+      if (!signatureImage) return;
+      sigPosX += MOVE_STEP;
+      render();
+    });
+
+    // === 縮放 ===
+    scaleRange.addEventListener('input', (e) => {
+      if (!signatureImage) return;
+      sigScale = parseFloat(e.target.value);
+      render();
+    });
+
+    // === 儲存成圖片 ===
+    saveImageBtn.addEventListener('click', () => {
+      if (!bgLoaded) {
+        alert('請先選擇簽單圖片。');
+        return;
+      }
+      // 確保畫面是最新位置
+      render();
+
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // 1) 嘗試觸發下載（某些手機會跳出下載提示）
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'signed-slip.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // 2) 同時在頁面下方顯示預覽，方便長按存相簿
+      resultImage.src = dataUrl;
+      resultImage.style.display = 'block';
+
+      alert('已產生簽名圖片：如果沒有自動下載，請往下滑、長按預覽圖儲存到相簿。');
+    });
+  </script>
+</body>
+</html>
