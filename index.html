@@ -262,14 +262,14 @@
     }
 
     .result-overlay-title {
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       font-weight: 600;
       text-align: center;
       margin-bottom: 2px;
     }
 
     .result-overlay-hint {
-      font-size: 1.2rem;
+      font-size: 1.4rem;
       color: #555;
       text-align: center;
       margin-bottom: 6px;
@@ -287,7 +287,7 @@
 
     .result-overlay-buttons button {
       width: 100%;
-      font-size: 1.35rem;
+      font-size: 1.45rem;
       padding: 0.9rem 0.9rem;
       box-sizing: border-box;
     }
@@ -295,14 +295,11 @@
 </head>
 <body>
   <h1>線上簽名</h1>
-  <div class="hint">
-    步驟：選擇簽單圖片 → 開啟簽名板 → 生成圖片
-  </div>
 
   <!-- 上方：只有「選擇簽單圖片」這一顆大按鈕 -->
   <div class="toolbar toolbar-top">
     <label class="file-label">
-      📂 選擇簽單圖片
+      📂 ① 選擇簽單
       <input type="file" id="bgUpload" accept="image/*" />
     </label>
   </div>
@@ -314,8 +311,8 @@
 
   <!-- 下方：簽名板＋生成圖片，兩顆並排 -->
   <div class="toolbar toolbar-actions">
-    <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
-    <button id="saveImage" disabled>🖼️ 生成圖片</button>
+    <button id="openSignPad" disabled> ② 簽名 ✍️</button>
+    <button id="saveImage" disabled> ③ 生成 🖼️</button>
   </div>
 
   <!-- sigControls 結構保留但不使用（座標已固定） -->
@@ -624,6 +621,7 @@
   </script>
 </body>
 </html>
+
 
 
 
