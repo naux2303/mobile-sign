@@ -609,15 +609,38 @@
       closeSignPad();
     });
 
-    // === 主畫面：用手指拖移簽名 ===
+    // === 主畫面：用手指拖移簽名（只有點在簽名上才會拖動） ===
     canvas.addEventListener('pointerdown', (e) => {
-      if (!signatureImage) return;
-      e.preventDefault();
-      draggingSig = true;
-      lastDragClientX = e.clientX;
-      lastDragClientY = e.clientY;
-      canvas.setPointerCapture(e.pointerId);
-    });
+      if (!signatureImage) {
+        // 沒有簽名 → 不處理，讓瀏覽器自己決定要不要捲動
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleFactor = canvas.width / rect.width;
+
+      // 轉成畫布座標（跟 sigPosX / sigPosY 同一個單位）
+      const x = (e.clientX - rect.left) * scaleFactor;
+      const y = (e.clientY - rect.top) * scaleFactor;
+
+      // 計算簽名圖目前的寬高
+      const sigWidth = signatureImage.width * sigScale;
+      const sigHeight = signatureImage.height * sigScale;
+
+      // 判斷手指是不是按在簽名圖「範圍內」
+      const withinX = x >= sigPosX && x <= sigPosX + sigWidth;
+      const withinY = y >= sigPosY && y <= sigPosY + sigHeight;
+
+      if (withinX && withinY) {
+        // 手指按在簽名圖上 → 開始拖動簽名
+        e.preventDefault(); // 阻止捲動
+        draggingSig = true;
+        lastDragClientX = e.clientX;
+        lastDragClientY = e.clientY;
+        canvas.setPointerCapture(e.pointerId);
+      } else {
+        // 沒有按在簽名上 → 不當作拖動，讓頁面可以正常捲動
+        draggingSig = false;
 
     canvas.addEventListener('pointermove', (e) => {
       if (!draggingSig || !signatureImage) return;
@@ -723,4 +746,5 @@
   </script>
 </body>
 </html>
+
 
