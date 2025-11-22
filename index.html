@@ -286,10 +286,10 @@
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②簽名 → ③拖到簽名欄位 → ④儲存圖片
+    步驟：①選擇簽單圖片 → ②簽名後確認 → ③拖到簽名欄位 → ④生成圖片 → ⑤下滑儲存圖片
   </div>
   <div class="hint-extra">
-    不想簽名：開啟簽名板後，保持空白並按「取消」，簽名欄位會保持空白。
+    重簽或刪除：開啟簽名板後可以重簽；保持空白並按「取消」，可以刪除簽名。
   </div>
 
   <!-- 只有在 LINE 內建瀏覽器時才會顯示 -->
@@ -297,7 +297,7 @@
     偵測到您是使用 LINE 開啟網頁。<br>
     若簽名時畫面會跟著上下滑動，建議：<br>
     ① 將手機橫放後再簽名；或<br>
-    ② 點右上角「⋯」→ 選擇「在外部瀏覽器開啟」，簽名會更穩定。
+    ② 點右上角或右下角「⋯」→ 選擇「在外部瀏覽器開啟」，簽名會更穩定。
   </div>
 
   <div class="toolbar">
@@ -307,7 +307,7 @@
     </label>
 
     <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
-    <button id="saveImage" disabled>💾 儲存成圖片</button>
+    <button id="saveImage" disabled>💾 生成圖片</button>
   </div>
 
   <div class="canvas-wrapper">
@@ -419,11 +419,14 @@
     // 是否目前簽名板打開（給全局 touchmove 鎖捲動用，主要打 LINE）
     let isSignPadOpen = false;
 
+    let isInLine = false; // 判斷是不是在 LINE 內建瀏覽器打開
+
     // === 偵測 LINE 內建瀏覽器，顯示提示條 ===
     document.addEventListener('DOMContentLoaded', () => {
       const ua = navigator.userAgent || '';
       if (/Line/i.test(ua) && lineHintBar) {
         lineHintBar.style.display = 'block';
+        isInLine = true; // ✅ 記住：現在是在 LINE 裡
       }
     });
 
@@ -614,6 +617,11 @@
         return; // 沒有簽名 → 讓瀏覽器自己處理（可以捲動頁面）
       }
 
+      // ✅ 如果是 LINE 內建瀏覽器，完全禁止手指拖簽名
+      if (isInLine) {
+        return; // 直接讓 LINE 自己處理捲動，不開啟拖動邏輯
+      }
+
       const rect = canvas.getBoundingClientRect();
       const scaleFactor = canvas.width / rect.width;
 
@@ -729,15 +737,7 @@
 
         const url = URL.createObjectURL(blob);
 
-        // 1) 觸發下載
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'signed-slip.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // 2) 在頁面下方顯示預覽，方便長按存相簿
+        // 在頁面下方顯示預覽，方便長按存相簿
         resultImage.src = url;
         resultImage.style.display = 'block';
 
@@ -747,3 +747,4 @@
   </script>
 </body>
 </html>
+
