@@ -609,48 +609,21 @@
       closeSignPad();
     });
 
-    // === 主畫面：用手指拖移簽名（只有點在簽名上才會拖動） ===
+    // === 主畫面：用手指拖移簽名 ===
     canvas.addEventListener('pointerdown', (e) => {
-      if (!signatureImage) {
-        // 沒有簽名 → 不處理，讓瀏覽器自己決定要不要捲動
-        return;
-      }
-
-      const rect = canvas.getBoundingClientRect();
-      const scaleFactor = canvas.width / rect.width;
-
-      // 轉成畫布座標（跟 sigPosX / sigPosY 同一個單位）
-      const x = (e.clientX - rect.left) * scaleFactor;
-      const y = (e.clientY - rect.top) * scaleFactor;
-
-      // 計算簽名圖目前的寬高
-      const sigWidth = signatureImage.width * sigScale;
-      const sigHeight = signatureImage.height * sigScale;
-
-      // 判斷手指是不是按在簽名圖「範圍內」
-      const withinX = x >= sigPosX && x <= sigPosX + sigWidth;
-      const withinY = y >= sigPosY && y <= sigPosY + sigHeight;
-
-      if (withinX && withinY) {
-        // 手指按在簽名圖上 → 開始拖動簽名
-        e.preventDefault(); // 阻止捲動
-        draggingSig = true;
-        lastDragClientX = e.clientX;
-        lastDragClientY = e.clientY;
-        canvas.setPointerCapture(e.pointerId);
-      } else {
-        // 沒有按在簽名上 → 不當作拖動，讓頁面可以正常捲動
-        draggingSig = false;
+      if (!signatureImage) return;
+      e.preventDefault();
+      draggingSig = true;
+      lastDragClientX = e.clientX;
+      lastDragClientY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
 
     canvas.addEventListener('pointermove', (e) => {
-      if (!draggingSig || !signatureImage) {
-        // 沒在拖簽名 → 讓瀏覽器自己處理（可以捲動頁面）
-        return;
-      }
-      
-      e.preventDefault(); // 只有在真的拖簽名的時候，才阻止捲動
+      if (!draggingSig || !signatureImage) return;
+      e.preventDefault();
       const rect = canvas.getBoundingClientRect();
-      const scaleFactor = canvas.width / rect.width;
+      const scaleFactor = canvas.width / rect.width; // 把螢幕上的位移換算成畫布座標
 
       const dxClient = e.clientX - lastDragClientX;
       const dyClient = e.clientY - lastDragClientY;
@@ -722,34 +695,22 @@
       // 確保畫面是最新位置
       render();
 
-      // 用 Blob 產生圖片，比 dataURL 穩定
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          alert('產生圖片時發生錯誤，請再試一次。');
-          return;
-        }
-        
-        const url = URL.createObjectURL(blob);  
+      const dataUrl = canvas.toDataURL('image/png');
 
-        // 1) 觸發下載（部份瀏覽器會顯示「下載檔案」）
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'signed-slip.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      // 1) 嘗試觸發下載（某些手機會跳出下載提示）
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'signed-slip.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-        // 2) 在頁面下方顯示預覽圖 → 可長按儲存到相簿
-        resultImage.src = url;
-        resultImage.style.display = 'block';
+      // 2) 同時在頁面下方顯示預覽，方便長按存相簿
+      resultImage.src = dataUrl;
+      resultImage.style.display = 'block';
 
-        alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
-      }, 'image/png');
+      alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
     });
-    
   </script>
 </body>
 </html>
-
-
-
