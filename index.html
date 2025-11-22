@@ -5,6 +5,10 @@
   <title>手機簽名貼到簽單</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <style>
+    body.noscroll {
+      overflow: hidden;
+      touch-action: none;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
@@ -438,6 +442,9 @@
     function openSignPad() {
       signOverlay.classList.add('active');
 
+      // ✅ 打開簽名板時鎖住整頁捲動
+      document.body.classList.add('noscroll');
+
       // 先讓 overlay 顯示出來，才能抓到正確寬度
       // 這邊已經 add('active')，DOM 已經顯示，所以可以直接抓 parent 寬度
       const wrapper = signCanvas.parentElement; // .sign-canvas-wrapper
@@ -462,6 +469,7 @@
       // 清空畫布內容，背景保持透明（實際視覺白底由 CSS 決定）
       signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     }
+
 
     function closeSignPad() {
       signOverlay.classList.remove('active');
@@ -642,5 +650,6 @@
   </script>
 </body>
 </html>
+
 
 
