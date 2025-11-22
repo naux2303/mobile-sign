@@ -695,22 +695,32 @@
       // 確保畫面是最新位置
       render();
 
-      const dataUrl = canvas.toDataURL('image/png');
+      // 用 Blob 產生圖片，比 dataURL 穩定
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          alert('產生圖片時發生錯誤，請再試一次。');
+          return;
+        }
+        
+        const url = URL.createObjectURL(blob);  
 
-      // 1) 嘗試觸發下載（某些手機會跳出下載提示）
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'signed-slip.png';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+        // 1) 觸發下載（部份瀏覽器會顯示「下載檔案」）
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'signed-slip.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
 
-      // 2) 同時在頁面下方顯示預覽，方便長按存相簿
-      resultImage.src = dataUrl;
-      resultImage.style.display = 'block';
+        // 2) 在頁面下方顯示預覽圖 → 可長按儲存到相簿
+        resultImage.src = url;
+        resultImage.style.display = 'block';
 
-      alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
+        alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
+      }, 'image/png');
     });
+    
   </script>
 </body>
 </html>
+
