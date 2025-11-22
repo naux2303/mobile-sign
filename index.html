@@ -643,10 +643,14 @@
         draggingSig = false;
 
     canvas.addEventListener('pointermove', (e) => {
-      if (!draggingSig || !signatureImage) return;
-      e.preventDefault();
+      if (!draggingSig || !signatureImage) {
+        // 沒在拖簽名 → 讓瀏覽器自己處理（可以捲動頁面）
+        return;
+      }
+      
+      e.preventDefault(); // 只有在真的拖簽名的時候，才阻止捲動
       const rect = canvas.getBoundingClientRect();
-      const scaleFactor = canvas.width / rect.width; // 把螢幕上的位移換算成畫布座標
+      const scaleFactor = canvas.width / rect.width;
 
       const dxClient = e.clientX - lastDragClientX;
       const dyClient = e.clientY - lastDragClientY;
@@ -746,5 +750,6 @@
   </script>
 </body>
 </html>
+
 
 
