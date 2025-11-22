@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>線上簽名</title>
+  <title>簽名貼到簽單（手機版）</title>
   <!--
     viewport 設定：禁止縮放（maximum-scale=1.0），避免使用者雙指放大縮小
     以免影響簽名與畫布座標的對應關係。
@@ -16,7 +16,7 @@
       padding: 12px;
       background: #f5f5f5;
       color: #222;
-      font-size: 18px; /* 整體字再放大一點，當作基準大小 */
+      font-size: 18px; /* 全站基準字體大小 */
     }
 
     /* 簽名板 / 覆蓋預覽開啟時，鎖住背景頁的捲動與觸控 */
@@ -32,37 +32,16 @@
       font-weight: 700;
     }
 
-    /* 說明文字：設定為 B 等級（約 1.2rem） */
+    /* 簡短步驟說明（保留一行就好） */
     .hint {
       font-size: 1.2rem;
       color: #555;
-      margin-bottom: 6px;
+      margin-bottom: 10px;
       text-align: center;
       line-height: 1.5;
     }
 
-    .hint-extra {
-      text-align: center;
-      font-size: 1.2rem;
-      margin-bottom: 12px;
-      color: #333;
-      line-height: 1.5;
-    }
-
-    /* 只在 LINE 內建瀏覽器顯示的小提示條 */
-    .line-hint-bar {
-      display: none;
-      background: #fff3cd;
-      border: 1px solid #ffeeba;
-      color: #856404;
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 1rem;
-      margin-bottom: 12px;
-      line-height: 1.5;
-    }
-
-    /* 上方 toolbar：只放「選擇簽單圖片」那顆按鈕，佔滿寬度 */
+    /* 上方 toolbar：只放「選擇簽單圖片」，佔滿寬度 */
     .toolbar {
       display: flex;
       flex-wrap: nowrap;
@@ -80,11 +59,16 @@
 
     .toolbar-actions {
       margin-top: 10px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      gap: 8px;
     }
 
     button,
     input[type="file"] {
-      font-size: 1.35rem; /* C 等級：按鈕字體特大，方便長輩閱讀 */
+      font-size: 1.35rem; /* 按鈕字體特大：方便長輩閱讀 */
       padding: 0.7rem 0.9rem;
       border-radius: 10px;
       border: 1px solid #ccc;
@@ -139,7 +123,7 @@
       touch-action: none;
     }
 
-    /* 底部動作按鈕列：簽名板＋生成圖片 兩顆並排，寬度自動平均 */
+    /* 下方動作按鈕列：簽名板＋生成圖片 兩顆並排，寬度自動平均 */
     .toolbar-actions button {
       flex: 1;
       min-width: 0;
@@ -152,22 +136,11 @@
 
     /* 舊的結果區塊保留但隱藏（實際不用） */
     .result-wrapper {
-      margin-top: 10px;
-      background: #fff;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      font-size: 0.9rem;
       display: none;
     }
 
     .result-image {
-      width: 100%;
-      height: auto;
-      margin-top: 6px;
       display: none;
-      border-radius: 4px;
-      border: 1px solid #ccc;
     }
 
     /* === 簽名板 Overlay（全螢幕） === */
@@ -222,19 +195,6 @@
       background: #fff;
       touch-action: none;
       display: block;
-    }
-
-    .sign-watermark {
-      position: absolute;
-      left: 50%;
-      bottom: 8px;
-      transform: translateX(-50%);
-      font-size: 0.95rem;
-      color: #666;
-      text-align: center;
-      pointer-events: none;   /* 不要擋到手寫 */
-      opacity: 0.8;
-      line-height: 1.3;
     }
 
     .sign-pad-buttons {
@@ -316,7 +276,7 @@
       line-height: 1.5;
     }
 
-    /* 結果覆蓋框的兩顆按鈕：一列一顆、滿版寬度，字體 C 等級 */
+    /* 結果覆蓋框的兩顆按鈕：一列一顆、滿版寬度 */
     .result-overlay-buttons {
       display: flex;
       flex-direction: column;   /* 垂直排列，一列一顆 */
@@ -336,14 +296,13 @@
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②開啟簽名板 → ③生成圖片 → ④長按儲存
-  </div>
+    步驟：選擇簽單圖片 → 簽名 → 生成圖片並長按儲存到相簿。
   </div>
 
   <!-- 上方：只有「選擇簽單圖片」這一顆大按鈕 -->
   <div class="toolbar toolbar-top">
     <label class="file-label">
-      📂 選擇簽單圖片
+      📄 選擇簽單圖片
       <input type="file" id="bgUpload" accept="image/*" />
     </label>
   </div>
@@ -356,7 +315,7 @@
   <!-- 下方：簽名板＋生成圖片，兩顆並排 -->
   <div class="toolbar toolbar-actions">
     <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
-    <button id="saveImage" disabled>🖼️ 生成圖片</button>
+    <button id="saveImage" disabled>💾 生成圖片</button>
   </div>
 
   <!-- sigControls 結構保留但不使用（座標已固定） -->
@@ -364,32 +323,23 @@
 
   <!-- 舊下方結果區塊，實際不用 -->
   <div class="result-wrapper">
-    ✅ 產生好的圖片會顯示在下方：
-    <div class="small-hint">請長按下方圖片 → 儲存到相簿。</div>
     <img id="resultImage" class="result-image" alt="簽名完成圖片預覽" />
   </div>
 
   <!-- 簽名板 Overlay -->
   <div id="signPadOverlay">
     <div class="sign-pad-box">
-      <div class="sign-pad-title">請在框內簽名（用手指書寫）</div>
+      <div class="sign-pad-title">請在框內簽名</div>
 
       <div class="sign-canvas-wrapper">
         <canvas id="signCanvas"></canvas>
-        <div class="sign-watermark">
-          刪除簽名：請保持空白並按下方「取消」<br>
-          保持空白 ＝ 不會加入簽名
-        </div>
       </div>
 
+      <!-- 三顆簡單按鈕：重置／取消／確認 -->
       <div class="sign-pad-buttons">
-        <button id="clearSignature" class="btn-danger">清除</button>
+        <button id="clearSignature" class="btn-danger">重置</button>
         <button id="cancelSignature" class="btn-secondary">取消</button>
         <button id="useSignature" class="btn-primary">確認</button>
-      </div>
-      <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
-      <div class="small-hint" style="color:#444;">
-        ※ 如果決定不要簽名，可以直接按「取消」，不會加入任何簽名。
       </div>
     </div>
   </div>
@@ -402,9 +352,8 @@
       <img id="resultFinal" alt="簽名完成簽單" />
       <div class="result-overlay-buttons">
         <button id="btnRedo" class="btn-secondary">🔁 重新簽名</button>
-        <button id="btnNew" class="btn-primary">📝 上傳新簽單</button>
+        <button id="btnNew" class="btn-primary">📄 換一張簽單</button>
       </div>
-      <div class="small-hint">若要關閉此畫面，也可使用手機返回鍵。</div>
     </div>
   </div>
 
@@ -424,9 +373,6 @@
     const cancelSignatureBtn = document.getElementById('cancelSignature');
     const useSignatureBtn = document.getElementById('useSignature');
 
-    const lineHintBar = document.getElementById('lineHint');
-
-    // 覆蓋預覽框相關
     const resultOverlay = document.getElementById('resultOverlay');
     const resultFinal = document.getElementById('resultFinal');
     const btnRedo = document.getElementById('btnRedo');
@@ -448,18 +394,7 @@
     let signHeightCSS = 0;
     let isSignPadOpen = false;
 
-    let isInLine = false;         // 是否在 LINE 內建瀏覽器
-
-    // 三、偵測 LINE & 鎖住 touchmove
-    document.addEventListener('DOMContentLoaded', () => {
-      const ua = navigator.userAgent || '';
-      if (/Line/i.test(ua) && lineHintBar) {
-        lineHintBar.style.display = 'block';
-        isInLine = true;
-      }
-    });
-
-    // 簽名板或結果覆蓋預覽開啟時，阻止整頁滑動
+    // 三、簽名板或結果覆蓋預覽開啟時，阻止整頁滑動
     document.addEventListener('touchmove', (e) => {
       if (isSignPadOpen || resultOverlay.style.display === 'flex') {
         e.preventDefault();
@@ -519,9 +454,9 @@
 
       if (signatureImage) {
         const ok = confirm(
-          '目前已有簽名。\n\n' +
-          '如果想重簽或刪除簽名，請按「確定」。\n' +
-          '如果想保留簽名，請按「取消」。'
+          '目前已經有一個簽名。\n\n' +
+          '若要重新簽名，請按「確定」。\n' +
+          '若要保留原簽名，請按「取消」。'
         );
         if (!ok) return;
 
@@ -619,12 +554,10 @@
 
         if (bgImage) {
           // ★★ 固定簽名欄位設定區 ★★
-          // 這裡三個數字是：簽名大小 + 座標比例
           sigScale = 0.3;                              // 簽名縮放成原本 30%
           sigPosX = bgImage.naturalWidth * 0.7;        // X：簽名欄中央（你指定的 0.7）
           sigPosY = bgImage.naturalHeight * 0.68;      // Y：簽名欄中央（你指定的 0.68）
         } else {
-          // 理論上不會進來，只是安全保底
           sigScale = 1;
           sigPosX = 50;
           sigPosY = 50;
@@ -637,7 +570,7 @@
       closeSignPad();
     });
 
-    // 九、儲存成圖片 → 顯示覆蓋預覽框（A 方案）
+    // 九、儲存成圖片 → 顯示覆蓋預覽框
     saveImageBtn.addEventListener('click', () => {
       if (!bgLoaded) {
         alert('請先選擇簽單圖片。');
@@ -655,7 +588,6 @@
         const url = URL.createObjectURL(blob);
         resultFinal.src = url;
 
-        // 顯示覆蓋預覽框，並鎖住背景捲動
         resultOverlay.style.display = 'flex';
         document.body.classList.add('noscroll');
       }, 'image/png');
@@ -663,10 +595,6 @@
 
     // 十、覆蓋預覽框按鈕：重新簽名 / 換簽單
     btnRedo.addEventListener('click', () => {
-      // 重新簽名：
-      // 1. 關閉覆蓋預覽
-      // 2. 清除簽名圖
-      // 3. 重新打開簽名板
       resultOverlay.style.display = 'none';
       document.body.classList.remove('noscroll');
 
@@ -677,10 +605,6 @@
     });
 
     btnNew.addEventListener('click', () => {
-      // 換一張簽單：
-      // 1. 關閉覆蓋預覽
-      // 2. 清空簽名與底圖
-      // 3. 清空上傳 input，並鎖住按鈕
       resultOverlay.style.display = 'none';
       document.body.classList.remove('noscroll');
 
@@ -700,5 +624,3 @@
   </script>
 </body>
 </html>
-
-
