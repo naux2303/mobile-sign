@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>使用簽單簽名</title>
+  <title>簽名貼到簽單（手機版）</title>
   <!--
     viewport 設定：禁止縮放（maximum-scale=1.0），避免使用者雙指放大縮小
     以免影響簽名與畫布座標的對應關係。
@@ -16,6 +16,7 @@
       padding: 12px;
       background: #f5f5f5;
       color: #222;
+      font-size: 18px; /* 整體字再放大一點，當作基準大小 */
     }
 
     /* 簽名板 / 覆蓋預覽開啟時，鎖住背景頁的捲動與觸控 */
@@ -25,23 +26,27 @@
     }
 
     h1 {
-      font-size: 1.3rem;
-      margin: 0 0 8px;
+      font-size: 1.5rem;
+      margin: 0 0 10px;
       text-align: center;
+      font-weight: 700;
     }
 
+    /* 說明文字：設定為 B 等級（約 1.2rem） */
     .hint {
-      font-size: 0.9rem;
+      font-size: 1.2rem;
       color: #555;
       margin-bottom: 6px;
       text-align: center;
+      line-height: 1.5;
     }
 
     .hint-extra {
       text-align: center;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
+      font-size: 1.2rem;
+      margin-bottom: 12px;
       color: #333;
+      line-height: 1.5;
     }
 
     /* 只在 LINE 內建瀏覽器顯示的小提示條 */
@@ -50,26 +55,38 @@
       background: #fff3cd;
       border: 1px solid #ffeeba;
       color: #856404;
-      padding: 6px 10px;
+      padding: 8px 10px;
       border-radius: 8px;
-      font-size: 0.85rem;
-      margin-bottom: 10px;
-      line-height: 1.4;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      line-height: 1.5;
     }
 
+    /* 上方 toolbar：只放「選擇簽單圖片」那顆按鈕，佔滿寬度 */
     .toolbar {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 8px;
       justify-content: center;
       margin-bottom: 10px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .toolbar-top {
+      margin-top: 4px;
+    }
+
+    .toolbar-actions {
+      margin-top: 10px;
     }
 
     button,
     input[type="file"] {
-      font-size: 1rem;
-      padding: 0.6rem 0.8rem;
-      border-radius: 8px;
+      font-size: 1.35rem; /* C 等級：按鈕字體特大，方便長輩閱讀 */
+      padding: 0.7rem 0.9rem;
+      border-radius: 10px;
       border: 1px solid #ccc;
       background: #fff;
       cursor: pointer;
@@ -80,16 +97,19 @@
       cursor: not-allowed;
     }
 
+    /* 檔案選擇按鈕外觀：頂部單顆大按鈕，佔滿寬度 */
     .file-label {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       background: #ffffff;
       border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 0.6rem 0.8rem;
-      font-size: 1rem;
+      border-radius: 10px;
+      padding: 0.7rem 0.9rem;
+      font-size: 1.35rem;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     /* 真正的檔案 input 隱藏，留好看的按鈕外觀 */
@@ -102,6 +122,9 @@
       border-radius: 8px;
       padding: 8px;
       margin-bottom: 10px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /*
@@ -114,6 +137,12 @@
       background: #fff;
       border-radius: 4px;
       touch-action: none;
+    }
+
+    /* 底部動作按鈕列：簽名板＋生成圖片 兩顆並排，寬度自動平均 */
+    .toolbar-actions button {
+      flex: 1;
+      min-width: 0;
     }
 
     /* 之前的簽名位置調整 UI：現在不用了，直接固定座標，所以整塊隱藏 */
@@ -163,14 +192,14 @@
       width: calc(100% - 32px);
       max-width: 900px;
       border-radius: 12px;
-      padding: 10px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .sign-pad-title {
-      font-size: 1rem;
+      font-size: 1.3rem;
       font-weight: 600;
       text-align: center;
     }
@@ -200,7 +229,7 @@
       left: 50%;
       bottom: 8px;
       transform: translateX(-50%);
-      font-size: 0.8rem;
+      font-size: 0.95rem;
       color: #666;
       text-align: center;
       pointer-events: none;   /* 不要擋到手寫 */
@@ -237,7 +266,7 @@
     }
 
     .small-hint {
-      font-size: 0.8rem;
+      font-size: 0.95rem;
       color: #777;
       text-align: center;
     }
@@ -261,7 +290,7 @@
       max-width: 900px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
     }
 
@@ -273,37 +302,41 @@
     }
 
     .result-overlay-title {
-      font-size: 1rem;
+      font-size: 1.4rem;
       font-weight: 600;
       text-align: center;
       margin-bottom: 2px;
     }
 
     .result-overlay-hint {
-      font-size: 0.85rem;
+      font-size: 1.2rem;
       color: #555;
       text-align: center;
       margin-bottom: 6px;
+      line-height: 1.5;
     }
 
+    /* 結果覆蓋框的兩顆按鈕：一列一顆、滿版寬度，字體 C 等級 */
     .result-overlay-buttons {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;   /* 垂直排列，一列一顆 */
       gap: 8px;
-      justify-content: center;
+      width: 100%;
       margin-top: 4px;
     }
 
     .result-overlay-buttons button {
-      flex: 1;
-      min-width: 110px;
+      width: 100%;
+      font-size: 1.35rem;
+      padding: 0.9rem 0.9rem;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②簽名後確認 → ③生成圖片 → ④長按儲存
+    步驟：①選擇簽單圖片 → ②簽名後確認 → ③自動貼到簽名欄 → ④生成圖片 → 長按儲存
   </div>
   <div class="hint-extra">
     重簽或刪除：開啟簽名板後可以重簽；保持空白並按「取消」，可以刪除簽名。
@@ -317,18 +350,23 @@
     選擇「在外部瀏覽器開啟」，簽名會更穩定。
   </div>
 
-  <div class="toolbar">
+  <!-- 上方：只有「選擇簽單圖片」這一顆大按鈕 -->
+  <div class="toolbar toolbar-top">
     <label class="file-label">
       📄 選擇簽單圖片
       <input type="file" id="bgUpload" accept="image/*" />
     </label>
-
-    <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
-    <button id="saveImage" disabled>💾 生成圖片</button>
   </div>
 
+  <!-- 中間：簽單預覽畫布 -->
   <div class="canvas-wrapper">
     <canvas id="previewCanvas"></canvas>
+  </div>
+
+  <!-- 下方：簽名板＋生成圖片，兩顆並排 -->
+  <div class="toolbar toolbar-actions">
+    <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
+    <button id="saveImage" disabled>💾 生成圖片</button>
   </div>
 
   <!-- sigControls 結構保留但不使用（座標已固定） -->
@@ -361,7 +399,7 @@
       </div>
       <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
       <div class="small-hint" style="color:#444;">
-        ※ 如果直接按「取消」，不會加入任何簽名。
+        ※ 如果決定不要簽名，可以直接按「取消」，不會加入任何簽名。
       </div>
     </div>
   </div>
@@ -511,7 +549,7 @@
 
       const wrapper = signCanvas.parentElement;
       const boxWidth = wrapper.clientWidth;
-      const boxHeight = 260;
+      const boxHeight = 260; // 不改高度，避免你座標要重調
 
       signWidthCSS = boxWidth;
       signHeightCSS = boxHeight;
@@ -669,10 +707,6 @@
 
       alert('請重新選擇新的簽單圖片。');
     });
-
-    // （預留）如果你之後想用歷史紀錄控制覆蓋預覽，也可以在這裡擴充
-    // 目前只靠按鈕關閉，不對 history 動手，避免額外副作用。
   </script>
 </body>
 </html>
-
