@@ -438,10 +438,11 @@
     function openSignPad() {
       signOverlay.classList.add('active');
 
-      const margin = 40;
-      const maxCanvasHeight = 260; // CSS 高度固定，方便長輩簽名
-      const boxWidth = window.innerWidth - margin;
-      const boxHeight = maxCanvasHeight;
+      // 先讓 overlay 顯示出來，才能抓到正確寬度
+      // 這邊已經 add('active')，DOM 已經顯示，所以可以直接抓 parent 寬度
+      const wrapper = signCanvas.parentElement; // .sign-canvas-wrapper
+      const boxWidth = wrapper.clientWidth;     // 實際可用寬度
+      const boxHeight = 260;                    // 固定高度，手機書寫比較穩
 
       signWidthCSS = boxWidth;
       signHeightCSS = boxHeight;
@@ -641,3 +642,4 @@
   </script>
 </body>
 </html>
+
