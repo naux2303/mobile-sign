@@ -286,10 +286,10 @@
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②簽名後確認 → ③拖到簽名欄位 → ④生成圖片→⑤下滑儲存圖片
+    步驟：①選擇簽單圖片 → ②簽名 → ③拖到簽名欄位 → ④儲存圖片
   </div>
   <div class="hint-extra">
-    重簽或刪除：開啟簽名板後可以重簽；保持空白並按「取消」，可以刪除簽名。
+    不想簽名：開啟簽名板後，保持空白並按「取消」，簽名欄位會保持空白。
   </div>
 
   <!-- 只有在 LINE 內建瀏覽器時才會顯示 -->
@@ -307,7 +307,7 @@
     </label>
 
     <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
-    <button id="saveImage" disabled>💾 生成圖片</button>
+    <button id="saveImage" disabled>💾 儲存成圖片</button>
   </div>
 
   <div class="canvas-wrapper">
@@ -430,7 +430,6 @@
     // === 全局鎖捲動（針對 LINE：簽名板打開時，阻止任何 touchmove 捲動） ===
     document.addEventListener('touchmove', (e) => {
       if (isSignPadOpen) {
-        // 這裡一定要 passive: false 才能 preventDefault 生效（我們在 addEventListener 設定了）
         e.preventDefault();
       }
     }, { passive: false });
@@ -609,21 +608,47 @@
       closeSignPad();
     });
 
-    // === 主畫面：用手指拖移簽名 ===
+    // === 主畫面：用手指拖移簽名（只有點在簽名上才會拖動） ===
     canvas.addEventListener('pointerdown', (e) => {
-      if (!signatureImage) return;
-      e.preventDefault();
-      draggingSig = true;
-      lastDragClientX = e.clientX;
-      lastDragClientY = e.clientY;
-      canvas.setPointerCapture(e.pointerId);
+      if (!signatureImage) {
+        return; // 沒有簽名 → 讓瀏覽器自己處理（可以捲動頁面）
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleFactor = canvas.width / rect.width;
+
+      // 轉成畫布座標
+      const x = (e.clientX - rect.left) * scaleFactor;
+      const y = (e.clientY - rect.top) * scaleFactor;
+
+      const sigWidth = signatureImage.width * sigScale;
+      const sigHeight = signatureImage.height * sigScale;
+
+      const withinX = x >= sigPosX && x <= sigPosX + sigWidth;
+      const withinY = y >= sigPosY && y <= sigPosY + sigHeight;
+
+      if (withinX && withinY) {
+        // 手指按在簽名圖上 → 開始拖動簽名
+        e.preventDefault();
+        draggingSig = true;
+        lastDragClientX = e.clientX;
+        lastDragClientY = e.clientY;
+        canvas.setPointerCapture(e.pointerId);
+      } else {
+        // 沒按在簽名上 → 不拖動，讓頁面可以捲動
+        draggingSig = false;
+      }
     });
 
     canvas.addEventListener('pointermove', (e) => {
-      if (!draggingSig || !signatureImage) return;
-      e.preventDefault();
+      if (!draggingSig || !signatureImage) {
+        return;
+      }
+
+      e.preventDefault(); // 只有在真的拖簽名的時候，才阻止捲動
+
       const rect = canvas.getBoundingClientRect();
-      const scaleFactor = canvas.width / rect.width; // 把螢幕上的位移換算成畫布座標
+      const scaleFactor = canvas.width / rect.width;
 
       const dxClient = e.clientX - lastDragClientX;
       const dyClient = e.clientY - lastDragClientY;
@@ -686,30 +711,38 @@
       render();
     });
 
-    // === 儲存成圖片 ===
+    // === 儲存成圖片（用 Blob，外部瀏覽器也能正常預覽＋長按儲存） ===
     saveImageBtn.addEventListener('click', () => {
       if (!bgLoaded) {
         alert('請先選擇簽單圖片。');
-      return;
+        return;
       }
+
       // 確保畫面是最新位置
       render();
 
-      const dataUrl = canvas.toDataURL('image/png');
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          alert('產生圖片時發生錯誤，請再試一次。');
+          return;
+        }
 
-      // 1) 嘗試觸發下載（某些手機會跳出下載提示）
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'signed-slip.png';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+        const url = URL.createObjectURL(blob);
 
-      // 2) 同時在頁面下方顯示預覽，方便長按存相簿
-      resultImage.src = dataUrl;
-      resultImage.style.display = 'block';
+        // 1) 觸發下載
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'signed-slip.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
 
-      alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
+        // 2) 在頁面下方顯示預覽，方便長按存相簿
+        resultImage.src = url;
+        resultImage.style.display = 'block';
+
+        alert('已產生簽名圖片：如果沒有自動下載，請往下滑到頁面下方，長按圖片儲存到相簿。');
+      }, 'image/png');
     });
   </script>
 </body>
