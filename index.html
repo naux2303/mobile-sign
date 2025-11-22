@@ -848,12 +848,16 @@
         resultImage.src = url;
         resultImage.style.display = 'block';
 
-        alert('已產生簽名圖片：請往下滑到頁面下方，長按圖片儲存到相簿。');
+        // 自動把畫面捲動到預覽圖的位置（不用手動往下滑）
+        resultImage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        alert('已產生簽名圖片：請長按畫面中顯示的圖片，儲存到相簿。');
       }, 'image/png');
     });
   </script>
 </body>
 </html>
+
 
 
 
