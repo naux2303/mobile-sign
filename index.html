@@ -3,8 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <title>手機簽名貼到簽單</title>
+  <!--
+    viewport 設定：禁止縮放（maximum-scale=1.0），避免使用者雙指放大縮小
+    以免影響簽名與畫布座標的對應關係。
+  -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <style>
+    /*
+      === 整體版面 ===
+      讓整個頁面看起來像一張簡單的手機表單，
+      字體用系統字體，避免手機下載特殊字體卡頓。
+    */
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
@@ -13,7 +22,10 @@
       color: #222;
     }
 
-    /* 簽名板打開時，鎖住整頁捲動（一般瀏覽器用） */
+    /*
+      簽名板打開時，鎖住整頁捲動（一般瀏覽器用）。
+      加上 touch-action: none 可以避免在簽名時畫面跟著滑動。
+    */
     body.noscroll {
       overflow: hidden;
       touch-action: none;
@@ -39,7 +51,10 @@
       color: #333;
     }
 
-    /* 只有在 LINE 內建瀏覽器時才會顯示的提示條 */
+    /*
+      只有在 LINE 內建瀏覽器時才會顯示的提示條，
+      主要是教使用者可以改用「外部瀏覽器」來簽名會比較穩定。
+    */
     .line-hint-bar {
       display: none;
       background: #fff3cd;
@@ -60,7 +75,8 @@
       margin-bottom: 10px;
     }
 
-    button, input[type="file"] {
+    button,
+    input[type="file"] {
       font-size: 1rem;
       padding: 0.6rem 0.8rem;
       border-radius: 8px;
@@ -86,6 +102,7 @@
       font-size: 1rem;
     }
 
+    /* 真正的 <input type="file"> 隱藏，只留下好看的外觀按鈕 */
     #bgUpload {
       display: none;
     }
@@ -97,16 +114,26 @@
       margin-bottom: 10px;
     }
 
+    /*
+      previewCanvas：顯示簽單＋簽名的主畫布。
+      實際輸出的解析度由 JS 設定 canvas.width / height，
+      CSS 只負責等比例縮放到螢幕寬度。
+    */
     #previewCanvas {
       width: 100%;
       height: auto;
       background: #fff;
       border-radius: 4px;
-      touch-action: none; /* 手指拖動時比較好控制 */
+      touch-action: none; /* 減少手指滑動時的預設捲動干擾 */
     }
 
+    /*
+      簽名位置調整區（sig-controls）：
+      只有在「非 LINE 瀏覽器」才會顯示，讓你可以用方向鍵微調。
+      在 LINE 裡則完全隱藏，避免按鈕被雙擊放大畫面。
+    */
     .sig-controls {
-      display: none; /* 有簽名才顯示 */
+      display: none; /* 初始隱藏，有簽名且不在 LINE 才顯示 */
       flex-direction: column;
       gap: 8px;
       margin-bottom: 10px;
@@ -137,7 +164,7 @@
     }
 
     .arrow-grid .empty {
-      visibility: hidden;
+      visibility: hidden; /* 中間用來排版的空格 */
     }
 
     .scale-row {
@@ -164,22 +191,26 @@
       width: 100%;
       height: auto;
       margin-top: 6px;
-      display: none;
+      display: none; /* 生成圖片之前先隱藏，生成後再顯示 */
       border-radius: 4px;
       border: 1px solid #ccc;
     }
 
-    /* 簽名板 Overlay */
+    /*
+      === 簽名板 Overlay ===
+      使用 fixed + inset:0 讓簽名板全螢幕覆蓋，
+      背景半透明黑遮罩，簽名的白色框置中顯示。
+    */
     #signPadOverlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.6);
-      display: none;
+      display: none; /* 需要簽名時才顯示 */
       align-items: center;
       justify-content: center;
       z-index: 999;
 
-      /* 盡量阻止 overscroll 導致整頁滑動（新一點的瀏覽器） */
+      /* 盡量阻止 overscroll 導致整頁滑動（較新的瀏覽器有支援） */
       overscroll-behavior: contain;
       touch-action: none;
     }
@@ -210,12 +241,17 @@
       width: 100%;
     }
 
+    /*
+      signCanvas：真正在上面畫簽名的畫布。
+      實際像素大小由 JS 依照裝置 pixel ratio 設定，
+      CSS 控制它在畫面中的顯示大小。
+    */
     #signCanvas {
       width: 100%;
       height: 260px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      background: #fff; /* 視覺白底，但匯出時仍保留透明，只畫線 */
+      background: #fff; /* 只做視覺白底，實際輸出仍是透明背景＋線條 */
       touch-action: none;
       display: block;
     }
@@ -228,7 +264,7 @@
       font-size: 0.8rem;
       color: #666;
       text-align: center;
-      pointer-events: none;
+      pointer-events: none; /* 不要影響書寫 */
       opacity: 0.8;
       line-height: 1.3;
     }
@@ -266,38 +302,27 @@
       color: #777;
       text-align: center;
     }
-
-    /* 直式時顯示「建議橫放」 */
-    .rotate-hint {
-      font-size: 0.9rem;
-      color: #c0392b;
-      text-align: center;
-      margin-top: 4px;
-      display: none;
-    }
-
-    @media (orientation: portrait) {
-      .rotate-hint {
-        display: block;
-      }
-    }
   </style>
 </head>
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②簽名後確認 → ③拖到簽名欄位 → ④生成圖片 → ⑤下滑儲存圖片
+    步驟：①選擇簽單圖片 → ②簽名後確認 → ③（瀏覽器可微調位置）→ ④生成圖片 → ⑤下滑儲存圖片
   </div>
   <div class="hint-extra">
     重簽或刪除：開啟簽名板後可以重簽；保持空白並按「取消」，可以刪除簽名。
   </div>
 
-  <!-- 只有在 LINE 內建瀏覽器時才會顯示 -->
+  <!--
+    只有在 LINE 內建瀏覽器時才會顯示。
+    為了簡化使用者操作，這裡只建議「在外部瀏覽器開啟」，
+    不再特別鼓勵旋轉螢幕，避免使用者在簽名過程中邊寫邊轉造成版面改變。
+  -->
   <div id="lineHint" class="line-hint-bar">
     偵測到您是使用 LINE 開啟網頁。<br>
-    若簽名時畫面會跟著上下滑動，建議：<br>
-    ① 將手機橫放後再簽名；或<br>
-    ② 點右上角或右下角「⋯」→ 選擇「在外部瀏覽器開啟」，簽名會更穩定。
+    在 LINE 內簽名會自動貼到固定欄位，無需調整位置與大小。<br>
+    若簽名時畫面覺得不好寫，建議：點右上角或右下角「⋯」→
+    選擇「在外部瀏覽器開啟」，簽名會更穩定。
   </div>
 
   <div class="toolbar">
@@ -314,9 +339,14 @@
     <canvas id="previewCanvas"></canvas>
   </div>
 
+  <!--
+    簽名位置調整區：
+    - 電腦 / 一般瀏覽器：簽完名後可以微調位置與大小。
+    - LINE：不顯示，簽名直接貼到固定欄位。
+  -->
   <div id="sigControls" class="sig-controls">
-    <div class="sig-controls-title">簽名位置與大小調整</div>
-    <div class="small-hint">可以用手指直接拖動畫面上的簽名，也可以用下方按鈕微調。</div>
+    <div class="sig-controls-title">簽名位置與大小調整（瀏覽器專用）</div>
+    <div class="small-hint">電腦或手機瀏覽器可以用下方按鈕微調位置與大小，LINE 會自動固定位置。</div>
 
     <div class="arrow-grid">
       <div class="empty"></div>
@@ -338,23 +368,24 @@
   </div>
 
   <div class="result-wrapper">
-    ✅ 產生好的圖片會顯示在下方：  
-    <div class="small-hint">如果手機沒有自動下載，請往下滑，長按下方圖片 → 儲存到相簿。</div>
+    ✅ 產生好的圖片會顯示在下方：
+    <div class="small-hint">請往下滑，長按下方圖片 → 儲存到相簿。</div>
     <img id="resultImage" class="result-image" alt="簽名完成圖片預覽" />
   </div>
 
-  <!-- 簽名板 Overlay -->
+  <!--
+    === 簽名板 Overlay ===
+    這是一個獨立的全螢幕簽名區塊，用來收集使用者手寫簽名，
+    關閉後再把簽名貼回主畫布。
+  -->
   <div id="signPadOverlay">
     <div class="sign-pad-box">
       <div class="sign-pad-title">請在框內簽名（用手指書寫）</div>
-      <div class="rotate-hint">
-        建議將手機橫放簽名，畫面會比較大、比較穩。
-      </div>
 
       <div class="sign-canvas-wrapper">
         <canvas id="signCanvas"></canvas>
         <div class="sign-watermark">
-          刪除簽名，請保持空白並按下方「取消」<br>
+          刪除簽名：請保持空白並按下方「取消」<br>
           保持空白 ＝ 不會加入簽名
         </div>
       </div>
@@ -372,133 +403,165 @@
   </div>
 
   <script>
-    // === 全域變數 ===
-    const bgInput = document.getElementById('bgUpload');
-    const canvas = document.getElementById('previewCanvas');
-    const ctx = canvas.getContext('2d');
+    // =========================
+    //  一、取得常用的 DOM 元素
+    // =========================
 
-    const openSignBtn = document.getElementById('openSignPad');
-    const saveImageBtn = document.getElementById('saveImage');
-    const sigControls = document.getElementById('sigControls');
-    const scaleRange = document.getElementById('scaleRange');
-    const resultImage = document.getElementById('resultImage');
+    const bgInput = document.getElementById('bgUpload');           // 上傳簽單底圖的 <input>
+    const canvas = document.getElementById('previewCanvas');       // 主畫布（簽單＋簽名預覽）
+    const ctx = canvas.getContext('2d');                           // 主畫布 2D 繪圖 context
 
-    const btnUp = document.getElementById('btnUp');
-    const btnDown = document.getElementById('btnDown');
-    const btnLeft = document.getElementById('btnLeft');
-    const btnRight = document.getElementById('btnRight');
+    const openSignBtn = document.getElementById('openSignPad');    // 「開啟簽名板」按鈕
+    const saveImageBtn = document.getElementById('saveImage');     // 「生成圖片」按鈕
+    const sigControls = document.getElementById('sigControls');    // 位置／大小調整區塊（非 LINE）
+    const scaleRange = document.getElementById('scaleRange');      // 簽名縮放用的拉桿
+    const resultImage = document.getElementById('resultImage');    // 產生完成後的預覽圖
 
-    // 簽名板元素
-    const signOverlay = document.getElementById('signPadOverlay');
-    const signCanvas = document.getElementById('signCanvas');
-    const signCtx = signCanvas.getContext('2d');
+    const btnUp = document.getElementById('btnUp');                // 方向鍵：上
+    const btnDown = document.getElementById('btnDown');            // 方向鍵：下
+    const btnLeft = document.getElementById('btnLeft');            // 方向鍵：左
+    const btnRight = document.getElementById('btnRight');          // 方向鍵：右
+
+    // 簽名板相關元素
+    const signOverlay = document.getElementById('signPadOverlay'); // 全螢幕簽名板外殼
+    const signCanvas = document.getElementById('signCanvas');      // 真正簽名用的畫布
+    const signCtx = signCanvas.getContext('2d');                   // 簽名畫布 context
     const clearSignatureBtn = document.getElementById('clearSignature');
     const cancelSignatureBtn = document.getElementById('cancelSignature');
     const useSignatureBtn = document.getElementById('useSignature');
 
-    const lineHintBar = document.getElementById('lineHint');
+    const lineHintBar = document.getElementById('lineHint');       // LINE 提示條
 
-    let bgImage = null;              // 簽單背景圖
-    let signatureImage = null;       // 已簽好名字的圖
-    let sigPosX = 0;                 // 簽名在背景上的 X
-    let sigPosY = 0;                 // 簽名在背景上的 Y
-    let sigScale = 1;                // 簽名縮放
-    let bgLoaded = false;
+    // =========================
+    //  二、狀態變數
+    // =========================
 
-    let draggingSig = false;
-    let lastDragClientX = 0;
-    let lastDragClientY = 0;
+    let bgImage = null;            // 目前載入的簽單底圖（Image 物件）
+    let signatureImage = null;     // 已簽名後轉成的 Image（透明背景）
+    let sigPosX = 0;               // 簽名圖在主畫布上的 X 座標（以底圖原尺寸為單位）
+    let sigPosY = 0;               // 簽名圖在主畫布上的 Y 座標
+    let sigScale = 1;              // 簽名縮放比例
+    let bgLoaded = false;          // 有沒有成功載入底圖
 
-    // 簽名板內部狀態
-    let drawing = false;
-    let lastSignX = 0;
-    let lastSignY = 0;
-    let signWidthCSS = 0;
-    let signHeightCSS = 0;
+    let draggingSig = false;       // 是否正在拖動簽名（只在非 LINE 瀏覽器啟用）
+    let lastDragClientX = 0;       // 拖曳用：上一個 pointer 的 clientX
+    let lastDragClientY = 0;       // 拖曳用：上一個 pointer 的 clientY
 
-    // 是否目前簽名板打開（給全局 touchmove 鎖捲動用，主要打 LINE）
-    let isSignPadOpen = false;
+    // 簽名板內部狀態（只跟簽名畫布 signCanvas 有關）
+    let drawing = false;           // 是否正在簽名
+    let lastSignX = 0;             // 簽名上一點的 X
+    let lastSignY = 0;             // 簽名上一點的 Y
+    let signWidthCSS = 0;          // 簽名畫布在 CSS 上的寬度（px）
+    let signHeightCSS = 0;         // 簽名畫布在 CSS 上的高度（px）
 
-    let isInLine = false; // 判斷是不是在 LINE 內建瀏覽器打開
+    let isSignPadOpen = false;     // 簽名板是否打開（用來鎖住整頁 touchmove）
+    let isInLine = false;          // 是否在 LINE 內建瀏覽器開啟
 
-    // === 偵測 LINE 內建瀏覽器，顯示提示條 ===
+    // =========================
+    //  三、偵測是否在 LINE，決定提示與行為
+    // =========================
+
     document.addEventListener('DOMContentLoaded', () => {
       const ua = navigator.userAgent || '';
+
+      // 利用 userAgent 上是否包含 "Line" 來判斷 LINE 內建瀏覽器
       if (/Line/i.test(ua) && lineHintBar) {
-        lineHintBar.style.display = 'block';
-        isInLine = true; // ✅ 記住：現在是在 LINE 裡
+        lineHintBar.style.display = 'block'; // 顯示提醒使用者可以改用外部瀏覽器
+        isInLine = true;                     // 紀錄目前跑在 LINE 裡
       }
     });
 
-    // === 全局鎖捲動（針對 LINE：簽名板打開時，阻止任何 touchmove 捲動） ===
+    //
+    // 在簽名板打開時，阻止全頁面的 touchmove，
+    // 這樣使用者在簽名時畫面不會因為滑動而捲動整個網頁。
+    // 特別是 LINE 內建瀏覽器，沒有這段會很容易整頁一起晃。
+    //
     document.addEventListener('touchmove', (e) => {
       if (isSignPadOpen) {
         e.preventDefault();
       }
     }, { passive: false });
 
-    // === 載入簽單圖片 ===
+    // =========================
+    //  四、載入簽單底圖
+    // =========================
+
     bgInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) return; // 沒選檔就不做事
 
       const reader = new FileReader();
       reader.onload = (ev) => {
         const img = new Image();
         img.onload = () => {
-          bgImage = img;
-          // 用圖片原始尺寸作為畫布尺寸（輸出清晰）
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
+          bgImage = img;                                  // 存起來
+          canvas.width = img.naturalWidth;                // 主畫布寬度 = 底圖原始寬度
+          canvas.height = img.naturalHeight;              // 主畫布高度 = 底圖原始高度
           bgLoaded = true;
-          openSignBtn.disabled = false;
-          saveImageBtn.disabled = false;
-          signatureImage = null;
-          sigControls.style.display = 'none';
-          resultImage.style.display = 'none';
-          render();
+
+          openSignBtn.disabled = false;                   // 允許開啟簽名板
+          saveImageBtn.disabled = false;                  // 允許生成圖片
+
+          signatureImage = null;                          // 換底圖時清掉舊簽名
+          sigControls.style.display = 'none';             // 隱藏位置調整區（等簽完再決定要不要顯示）
+          resultImage.style.display = 'none';             // 隱藏舊的結果圖
+
+          render();                                       // 重新畫一次底圖
         };
-        img.src = ev.target.result;
+        img.src = ev.target.result;                       // 讀入的檔案轉成 dataURL 當作圖片來源
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(file);                          // 將檔案讀成 base64 dataURL
     });
 
-    // === 主畫面：重新繪製 ===
+    // =========================
+    //  五、主畫布重繪函式
+    // =========================
+
     function render() {
       if (!bgLoaded || !bgImage) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
+        return; // 尚未載入底圖 → 畫布保持空白
       }
+
+      // 1. 先清空整個畫布
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 2. 畫簽單底圖
       ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
 
+      // 3. 如果目前有簽名，才把簽名疊上去
       if (signatureImage) {
         ctx.save();
-        ctx.translate(sigPosX, sigPosY);
-        ctx.scale(sigScale, sigScale);
-        ctx.drawImage(signatureImage, 0, 0);
+        ctx.translate(sigPosX, sigPosY);   // 將原點移到簽名的左上角位置
+        ctx.scale(sigScale, sigScale);     // 套用縮放
+        ctx.drawImage(signatureImage, 0, 0); // 把簽名圖畫上去（簽名圖本身是透明背景）
         ctx.restore();
       }
     }
 
-    // === 開啟簽名板（含防呆：已有簽名時詢問是否重簽） ===
+    // =========================
+    //  六、開啟 / 關閉簽名板
+    // =========================
+
+    // 按下「開啟簽名板」的邏輯
     openSignBtn.addEventListener('click', () => {
       if (!bgLoaded) {
         alert('請先選擇簽單圖片。');
         return;
       }
 
+      // 若已經有簽名，先做防呆：避免誤觸開啟簽名板就改掉原本的簽名
       if (signatureImage) {
         const ok = confirm(
           '目前已經有一個簽名。\n\n' +
-          '如果你想重新簽或是刪除簽名，請按「確定」。\n' +
+          '如果你想重新簽或刪除現在的簽名，請按「確定」。\n' +
           '如果想保留現在的簽名，請按「取消」。'
         );
         if (!ok) {
-          // 使用者按「取消」→ 保留原本簽名，不開簽名板
+          // 使用者想保留舊簽名 → 什麼都不做
           return;
         }
-        // 使用者同意重簽 → 清掉舊簽名、隱藏調整區
+        // 清除舊簽名與調整區
         signatureImage = null;
         sigControls.style.display = 'none';
         render();
@@ -507,41 +570,50 @@
       openSignPad();
     });
 
+    // 實際開啟簽名板的函式
     function openSignPad() {
-      signOverlay.classList.add('active');
-      document.body.classList.add('noscroll');
+      signOverlay.classList.add('active');     // 顯示全螢幕簽名 overlay
+      document.body.classList.add('noscroll'); // 鎖住背景捲動
       isSignPadOpen = true;
 
+      // 依照畫面寬度設定簽名畫布大小（每次打開都重新計算一次）
       const wrapper = signCanvas.parentElement; // .sign-canvas-wrapper
-      const boxWidth = wrapper.clientWidth;
-      const boxHeight = 260; // 固定高度，手機書寫比較穩
+      const boxWidth = wrapper.clientWidth;     // 當下可用寬度
+      const boxHeight = 260;                    // 固定高度，手機簽名的手感比較穩
 
       signWidthCSS = boxWidth;
       signHeightCSS = boxHeight;
 
+      // 根據裝置 pixel ratio 設定實際畫布解析度，避免畫面糊掉
       const dpr = window.devicePixelRatio || 1;
       signCanvas.style.width = boxWidth + 'px';
       signCanvas.style.height = boxHeight + 'px';
       signCanvas.width = boxWidth * dpr;
       signCanvas.height = boxHeight * dpr;
 
+      // 把畫布座標系統調整回「以 CSS pixel 為單位」的座標，寫起來比較直覺
       signCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      signCtx.lineWidth = 3.5;
-      signCtx.lineCap = 'round';
-      signCtx.lineJoin = 'round';
+      signCtx.lineWidth = 3.5;      // 簽名線的粗細
+      signCtx.lineCap = 'round';    // 線頭圓角，手寫會比較順
+      signCtx.lineJoin = 'round';   // 折線銜接處圓角
       signCtx.strokeStyle = '#000000';
 
-      // 清空畫布內容，背景保持透明（實際視覺白底由 CSS 決定）
+      // 清空畫布內容（保持透明，只畫線）
       signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     }
 
+    // 關閉簽名板：關閉 overlay＋恢復 body 捲動
     function closeSignPad() {
       signOverlay.classList.remove('active');
       document.body.classList.remove('noscroll');
       isSignPadOpen = false;
     }
 
-    // === 簽名板：畫線 ===
+    // =========================
+    //  七、簽名畫布：偵測座標與畫線
+    // =========================
+
+    // 將 pointer 事件的 clientX / clientY 轉成畫布內的座標
     function getSignPos(evt) {
       const rect = signCanvas.getBoundingClientRect();
       const x = evt.clientX - rect.left;
@@ -549,16 +621,18 @@
       return { x, y };
     }
 
+    // pointerdown：開始簽名
     signCanvas.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      drawing = true;
+      e.preventDefault();        // 阻止瀏覽器預設行為（避免拉選文字或捲動）
+      drawing = true;            // 進入簽名狀態
       const pos = getSignPos(e);
       lastSignX = pos.x;
       lastSignY = pos.y;
     });
 
+    // pointermove：簽名進行中，不斷從上一點畫到新位置
     signCanvas.addEventListener('pointermove', (e) => {
-      if (!drawing) return;
+      if (!drawing) return;      // 沒有在簽名就忽略
       e.preventDefault();
       const pos = getSignPos(e);
       signCtx.beginPath();
@@ -569,6 +643,7 @@
       lastSignY = pos.y;
     });
 
+    // pointerup / cancel / leave：結束簽名
     function stopDrawing() {
       drawing = false;
     }
@@ -577,58 +652,78 @@
     signCanvas.addEventListener('pointercancel', stopDrawing);
     signCanvas.addEventListener('pointerleave', stopDrawing);
 
-    // 清除重簽（畫布恢復透明內容）
+    // 「清除重簽」：把簽名板內容清空
     clearSignatureBtn.addEventListener('click', () => {
       signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     });
 
-    // 取消
+    // 「取消」：關閉簽名板，不寫入主畫布。如果簽名是空白，等同於刪除簽名。
     cancelSignatureBtn.addEventListener('click', () => {
       closeSignPad();
     });
 
-    // 使用這個簽名
+    // =========================
+    //  八、簽名完成，貼到主畫布
+    // =========================
+
+    // 將簽名畫布轉成 PNG dataURL，再載入成透明背景的 Image
     useSignatureBtn.addEventListener('click', () => {
-      const dataUrl = signCanvas.toDataURL('image/png');
+      const dataUrl = signCanvas.toDataURL('image/png'); // 透明背景 + 黑線
       const img = new Image();
+
       img.onload = () => {
-        signatureImage = img;
-        // 初始位置抓在簽單右下角附近
+        signatureImage = img; // 記住這張簽名圖，之後 render() 會把它疊到底圖上
+
         if (bgImage) {
-          sigScale = 0.3; // 先給一個大概的比例，之後可以用拉桿調
-          sigPosX = bgImage.naturalWidth * 0.62;
-          sigPosY = bgImage.naturalHeight * 0.7;
+          // ★★ 固定簽名欄位設定區 ★★
+          // 以下三個數字就是「簽名欄位」：
+          //   - sigScale：簽名大小
+          //   - 0.62   ：簽名左上角 X 座標（占整張寬度的比例）
+          //   - 0.70   ：簽名左上角 Y 座標（占整張高度的比例）
+          // 你之後如果想微調，只要改這三個數字即可。
+          sigScale = 0.3;                              // 簽名縮放成原本的 30%
+          sigPosX = bgImage.naturalWidth * 0.62;       // 靠右一點的 X 位置
+          sigPosY = bgImage.naturalHeight * 0.7;       // 底部偏上的 Y 位置
         } else {
+          // 理論上不會進來（因為沒底圖時不能開簽名板），保險寫法
           sigScale = 1;
           sigPosX = 50;
           sigPosY = 50;
         }
+
+        // 同步更新縮放拉桿的數值，方便在瀏覽器中微調
         scaleRange.value = sigScale;
-        // 非 LINE 才顯示調整區，LINE 直接固定位置，不給按按鈕
+
+        // 在 LINE 裡不顯示 sigControls，避免方向鍵被誤判成雙擊放大
         if (!isInLine) {
           sigControls.style.display = 'flex';
         }
-        render();
+
+        render(); // 重新畫一次主畫布（底圖 + 簽名）
       };
-      img.src = dataUrl;
-      closeSignPad();
+
+      img.src = dataUrl; // 開始載入簽名圖片
+      closeSignPad();    // 可以關閉簽名板了
     });
 
-    // === 主畫面：用手指拖移簽名（只有點在簽名上才會拖動） ===
+    // =========================
+    //  九、主畫布：拖動簽名（瀏覽器專用）
+    // =========================
+
     canvas.addEventListener('pointerdown', (e) => {
       if (!signatureImage) {
-        return; // 沒有簽名 → 讓瀏覽器自己處理（可以捲動頁面）
+        return; // 沒有簽名 → 讓瀏覽器自己處理（照常捲動畫面）
       }
 
-      // ✅ 如果是 LINE 內建瀏覽器，完全禁止手指拖簽名
+      // 如果是在 LINE 內建瀏覽器，完全不啟用拖動簽名功能，
+      // 避免手指在畫面上滑動被誤判，影響使用體驗。
       if (isInLine) {
-        return; // 直接讓 LINE 自己處理捲動，不開啟拖動邏輯
+        return;
       }
 
       const rect = canvas.getBoundingClientRect();
-      const scaleFactor = canvas.width / rect.width;
+      const scaleFactor = canvas.width / rect.width; // 將螢幕座標換算成畫布座標
 
-      // 轉成畫布座標
       const x = (e.clientX - rect.left) * scaleFactor;
       const y = (e.clientY - rect.top) * scaleFactor;
 
@@ -639,31 +734,31 @@
       const withinY = y >= sigPosY && y <= sigPosY + sigHeight;
 
       if (withinX && withinY) {
-        // 手指按在簽名圖上 → 開始拖動簽名
+        // 只有「真的點在簽名圖上」才開始拖動，避免誤觸。
         e.preventDefault();
         draggingSig = true;
         lastDragClientX = e.clientX;
         lastDragClientY = e.clientY;
         canvas.setPointerCapture(e.pointerId);
       } else {
-        // 沒按在簽名上 → 不拖動，讓頁面可以捲動
-        draggingSig = false;
+        draggingSig = false; // 點在其他地方 → 視為一般捲動，不處理
       }
     });
 
     canvas.addEventListener('pointermove', (e) => {
       if (!draggingSig || !signatureImage) {
-        return;
+        return; // 沒在拖，或沒有簽名 → 不處理
       }
 
-      e.preventDefault(); // 只有在真的拖簽名的時候，才阻止捲動
+      e.preventDefault(); // 正在拖簽名時，阻止頁面捲動
 
       const rect = canvas.getBoundingClientRect();
       const scaleFactor = canvas.width / rect.width;
 
-      const dxClient = e.clientX - lastDragClientX;
+      const dxClient = e.clientX - lastDragClientX; // 在螢幕上移動的距離
       const dyClient = e.clientY - lastDragClientY;
 
+      // 轉成畫布座標後，累加到簽名的位置
       sigPosX += dxClient * scaleFactor;
       sigPosY += dyClient * scaleFactor;
 
@@ -677,7 +772,9 @@
       draggingSig = false;
       try {
         canvas.releasePointerCapture(e.pointerId);
-      } catch (err) {}
+      } catch (err) {
+        // 某些瀏覽器可能不支援或已自動釋放，安全忽略錯誤
+      }
     });
 
     canvas.addEventListener('pointercancel', () => {
@@ -688,8 +785,11 @@
       draggingSig = false;
     });
 
-    // === 方向鍵微調 ===
-    const MOVE_STEP = 20; // 一次移動 20px（背景原始尺寸座標）
+    // =========================
+    //  十、方向鍵微調（瀏覽器專用）
+    // =========================
+
+    const MOVE_STEP = 20; // 一次移動 20px（以底圖原始解析度為單位）
 
     btnUp.addEventListener('click', () => {
       if (!signatureImage) return;
@@ -715,23 +815,27 @@
       render();
     });
 
-    // === 縮放 ===
+    // 調整縮放比例滑桿
     scaleRange.addEventListener('input', (e) => {
       if (!signatureImage) return;
       sigScale = parseFloat(e.target.value);
       render();
     });
 
-    // === 儲存成圖片（用 Blob，外部瀏覽器也能正常預覽＋長按儲存） ===
+    // =========================
+    //  十一、儲存成圖片（顯示預覽，讓使用者長按儲存）
+    // =========================
+
     saveImageBtn.addEventListener('click', () => {
       if (!bgLoaded) {
         alert('請先選擇簽單圖片。');
         return;
       }
 
-      // 確保畫面是最新位置
+      // 先確保畫布內容是最新的
       render();
 
+      // 使用 toBlob 產生 PNG 檔案，再用 URL 產生預覽圖
       canvas.toBlob((blob) => {
         if (!blob) {
           alert('產生圖片時發生錯誤，請再試一次。');
@@ -740,7 +844,7 @@
 
         const url = URL.createObjectURL(blob);
 
-        // 在頁面下方顯示預覽，方便長按存相簿
+        // 在頁面下方顯示預覽，讓使用者長按存圖到相簿
         resultImage.src = url;
         resultImage.style.display = 'block';
 
@@ -750,7 +854,3 @@
   </script>
 </body>
 </html>
-
-
-
-
