@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>簽名貼到簽單（手機版）</title>
+  <title>線上簽名</title>
   <!--
     viewport 設定：禁止縮放（maximum-scale=1.0），避免使用者雙指放大縮小
     以免影響簽名與畫布座標的對應關係。
@@ -336,24 +336,17 @@
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
-    步驟：①選擇簽單圖片 → ②簽名後確認 → ③自動貼到簽名欄 → ④生成圖片 → 長按儲存
+    步驟：①選擇簽單圖片 → ②開啟簽名板 → ③生成圖片 → ④長按儲存
   </div>
   <div class="hint-extra">
-    重簽或刪除：開啟簽名板後可以重簽；保持空白並按「取消」，可以刪除簽名。
-  </div>
-
-  <!-- 只在 LINE 內建瀏覽器顯示的提示 -->
-  <div id="lineHint" class="line-hint-bar">
-    偵測到您是使用 LINE 開啟網頁。<br>
-    在 LINE 內簽名會自動貼到固定欄位，無需調整位置與大小。<br>
-    若簽名時畫面覺得不好寫，建議：點右上角或右下角「⋯」→
-    選擇「在外部瀏覽器開啟」，簽名會更穩定。
+    重簽：再次開啟簽名板後可以重簽；
+    保持空白並按「取消」，可以刪除簽名。
   </div>
 
   <!-- 上方：只有「選擇簽單圖片」這一顆大按鈕 -->
   <div class="toolbar toolbar-top">
     <label class="file-label">
-      📄 選擇簽單圖片
+      📂 選擇簽單圖片
       <input type="file" id="bgUpload" accept="image/*" />
     </label>
   </div>
@@ -366,7 +359,7 @@
   <!-- 下方：簽名板＋生成圖片，兩顆並排 -->
   <div class="toolbar toolbar-actions">
     <button id="openSignPad" disabled>✍️ 開啟簽名板</button>
-    <button id="saveImage" disabled>💾 生成圖片</button>
+    <button id="saveImage" disabled>🖼️ 生成圖片</button>
   </div>
 
   <!-- sigControls 結構保留但不使用（座標已固定） -->
@@ -393,9 +386,9 @@
       </div>
 
       <div class="sign-pad-buttons">
-        <button id="clearSignature" class="btn-danger">清除重簽</button>
+        <button id="clearSignature" class="btn-danger">清除</button>
         <button id="cancelSignature" class="btn-secondary">取消</button>
-        <button id="useSignature" class="btn-primary">使用這個簽名</button>
+        <button id="useSignature" class="btn-primary">確認</button>
       </div>
       <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
       <div class="small-hint" style="color:#444;">
@@ -412,7 +405,7 @@
       <img id="resultFinal" alt="簽名完成簽單" />
       <div class="result-overlay-buttons">
         <button id="btnRedo" class="btn-secondary">🔁 重新簽名</button>
-        <button id="btnNew" class="btn-primary">📄 換一張簽單</button>
+        <button id="btnNew" class="btn-primary">📝 上傳新簽單</button>
       </div>
       <div class="small-hint">若要關閉此畫面，也可使用手機返回鍵。</div>
     </div>
@@ -529,9 +522,9 @@
 
       if (signatureImage) {
         const ok = confirm(
-          '目前已經有一個簽名。\n\n' +
-          '如果你想重新簽或刪除現在的簽名，請按「確定」。\n' +
-          '如果想保留現在的簽名，請按「取消」。'
+          '目前已有簽名。\n\n' +
+          '如果想重簽或刪除簽名，請按「確定」。\n' +
+          '如果想保留簽名，請按「取消」。'
         );
         if (!ok) return;
 
@@ -710,3 +703,4 @@
   </script>
 </body>
 </html>
+
