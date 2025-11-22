@@ -354,7 +354,7 @@
       <div class="sign-canvas-wrapper">
         <canvas id="signCanvas"></canvas>
         <div class="sign-watermark">
-          若不想簽名，請保持空白並按下方「取消」<br>
+          刪除簽名，請保持空白並按下方「取消」<br>
           保持空白 ＝ 不會加入簽名
         </div>
       </div>
@@ -366,7 +366,7 @@
       </div>
       <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
       <div class="small-hint" style="color:#444;">
-        ※ 如果臨時決定不要簽名，可以直接按「取消」，不會加入任何簽名。
+        ※ 如果決定不要簽名，可以直接按「取消」，不會加入任何簽名。
       </div>
     </div>
   </div>
@@ -491,7 +491,7 @@
       if (signatureImage) {
         const ok = confirm(
           '目前已經有一個簽名。\n\n' +
-          '如果你覺得簽得不好看，想重新簽，請按「確定」。\n' +
+          '如果你想重新簽或是刪除簽名，請按「確定」。\n' +
           '如果想保留現在的簽名，請按「取消」。'
         );
         if (!ok) {
@@ -596,7 +596,7 @@
         // 初始位置抓在簽單右下角附近
         if (bgImage) {
           sigScale = 0.3; // 先給一個大概的比例，之後可以用拉桿調
-          sigPosX = bgImage.naturalWidth * 0.55;
+          sigPosX = bgImage.naturalWidth * 0.58;
           sigPosY = bgImage.naturalHeight * 0.7;
         } else {
           sigScale = 1;
@@ -604,7 +604,10 @@
           sigPosY = 50;
         }
         scaleRange.value = sigScale;
-        sigControls.style.display = 'flex';
+        // 非 LINE 才顯示調整區，LINE 直接固定位置，不給按按鈕
+        if (!isInLine) {
+          sigControls.style.display = 'flex';
+        }
         render();
       };
       img.src = dataUrl;
@@ -747,5 +750,6 @@
   </script>
 </body>
 </html>
+
 
 
