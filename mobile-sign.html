@@ -222,6 +222,9 @@
 <body>
   <h1>簽名貼到簽單（手機版）</h1>
   <div class="hint">
+    <div style="text-align:center; font-size:0.9rem; margin-bottom:10px; color:#333;">
+    如果您不想簽名：開啟簽名板後請按「取消」，簽名欄位會保持空白。
+    </div>
     步驟：①選擇簽單圖片 → ②簽名 → ③拖到簽名欄位 → ④儲存圖片
   </div>
 
@@ -279,6 +282,9 @@
         <button id="useSignature" class="btn-primary">使用這個簽名</button>
       </div>
       <div class="small-hint">建議簽在中間，線條畫慢一點會比較滑順。</div>
+      <div class="small-hint" style="color:#444;">
+      ※ 不想簽名？不用畫，直接按「取消」即可（不會加入任何簽名）
+      </div>
     </div>
   </div>
 
@@ -400,9 +406,8 @@
       signCtx.lineCap = 'round';
       signCtx.lineJoin = 'round';
       signCtx.strokeStyle = '#000000';
-      // 填滿白底
-      signCtx.fillStyle = '#ffffff';
-      signCtx.fillRect(0, 0, signWidthCSS, signHeightCSS);
+      // 清空畫布，保留透明背景
+      signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     }
 
     function closeSignPad() {
@@ -447,8 +452,8 @@
 
     // 清除重簽
     clearSignatureBtn.addEventListener('click', () => {
-      signCtx.fillStyle = '#ffffff';
-      signCtx.fillRect(0, 0, signWidthCSS, signHeightCSS);
+      // 清空畫布，重新變透明
+      signCtx.clearRect(0, 0, signWidthCSS, signHeightCSS);
     });
 
     // 取消
@@ -563,6 +568,29 @@
         alert('請先選擇簽單圖片。');
         return;
       }
+      // 防呆：已經有簽名時，詢問是否丟掉重簽
+      if (signatureImage) {
+        const ok = confirm('目前已經有一個簽名，重新簽名會覆蓋舊的，確定要重簽嗎？如果你想保留原本的簽名，請按「取消」。（直接按取消＝不會改動任何東西）');
+        if (!ok) {
+          // 使用者按「取消」→ 保留原本簽名，不開簽名板
+          return;
+        }
+        // 使用者同意重簽 → 清掉舊簽名、隱藏調整區
+        signatureImage = null;
+        sigControls.style.display = 'none';
+        render();
+      }
+      
+      openSignPad();
+      // 加入浮水印提示文字（不會寫進匯出的簽名 PNG）
+      signCtx.save();
+      signCtx.globalAlpha = 0.4;
+      signCtx.font = "16px sans-serif";
+      signCtx.fillStyle = "#333";
+      signCtx.fillText("若要取消簽名 → 請按下方「取消」按鈕\n保持空白＝不會加入簽名", 10, signHeightCSS - 20);
+      signCtx.restore();
+    });
+       
       // 確保畫面是最新位置
       render();
 
@@ -585,3 +613,4 @@
   </script>
 </body>
 </html>
+
